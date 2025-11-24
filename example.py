@@ -47,7 +47,6 @@ if __name__ == "__main__":
 
         # Detekcja
         detection_result = detector.detect(mp_image)
-        print(detection_result)
 
         # Rysowanie landmarków
         annotated_image = draw_landmarks_on_image(mp_image.numpy_view(), detection_result)

@@ -5,8 +5,3 @@ Mediapipe installing:
 ```
 pip install mediapipe
 ```
-
-Mediapipe installing:
-```
-pip install mediapipe
-```
