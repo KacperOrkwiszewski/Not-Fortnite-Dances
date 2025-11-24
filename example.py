@@ -5,7 +5,6 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from test1 import draw_landmarks_on_image
 
 
 def draw_landmarks_on_image(rgb_image, detection_result):
@@ -34,28 +33,29 @@ if __name__ == "__main__":
         base_options=base_options,
         output_segmentation_masks=True)
     detector = vision.PoseLandmarker.create_from_options(options)
-    
+
     cap = cv2.VideoCapture(0)
-    
+
     while True:
         ret, frame = cap.read()
         if not ret:
             print("Nie udało się pobrać obrazu z kamerki.")
             break
-        
+
         # Konwersja z numpy na mp.Image
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-    
+
         # Detekcja
         detection_result = detector.detect(mp_image)
-    
+        print(detection_result)
+
         # Rysowanie landmarków
         annotated_image = draw_landmarks_on_image(mp_image.numpy_view(), detection_result)
-    
+
         cv2.imshow("Pose Landmarks", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
-    
+
         if cv2.waitKey(1) & 0xFF == 27:  # ESC kończy pętlę
             break
-        
+
     cap.release()
     cv2.destroyAllWindows()
