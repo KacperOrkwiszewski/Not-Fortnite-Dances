@@ -51,7 +51,7 @@ if __name__ == "__main__":
         # Rysowanie landmarków
         annotated_image = draw_landmarks_on_image(mp_image.numpy_view(), detection_result)
 
-        cv2.imshow("Pose Landmarks", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+        cv2.imshow("Twoja parszywa morda", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
 
         if cv2.waitKey(1) & 0xFF == 27:  # ESC kończy pętlę
             break
