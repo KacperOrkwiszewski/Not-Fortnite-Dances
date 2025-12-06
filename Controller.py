@@ -1,47 +1,100 @@
-import threading
-import SharedData as sd
+import sys
+from PySide6.QtWidgets import QApplication, QStackedWidget
+from PySide6.QtCore import Qt
+import GUIScreens as gui
 
-class Controller:
+class App(QStackedWidget):
     def __init__(self):
-        
+        super().__init__()
         # components
-        self.voice_interface = None # receives and validates voice commands sending appropriate signals to appropriate component
-        self.counter = None # dictates exercise tempo with voice ques, counts times between sets
-        self.video_processor = None # processes camera feed from 2 cameras, saves the video and produces DataFrame objects
-        self.graphical_renderer = None # reads video from file, annotates each frame with feedback based on completed DataFrame objects, saves modified frames as video
-        self.graphical_ui = None # displays graphical user interface on a pc
+        self.voice_interface = None  # receives and validates voice commands sending appropriate signals to appropriate component
+        self.counter = None  # dictates exercise tempo with voice ques, counts times between sets
+        self.video_processor = None  # processes camera feed from 2 cameras, saves the video and produces DataFrame objects
+        self.graphical_renderer = None  # reads video from file, annotates each frame with feedback based on completed DataFrame objects, saves modified frames as video
+        self.exercise_validator = None  # completes FrameData objects
 
-        # existing components, not included in controller
-        # exercise_validator, owner -> video processor
-        # gathers information about recorded exercise, completes DataFrame objects
+        # GUI SCREENS
+        self.menu = gui.MainMenu()
+        self.timer_screen = gui.CircleTimer(duration_seconds=100) # rest duration
+        self.video_list = gui.VideoList()
+        self.player = gui.VideoPlayer()
+        self.gif_screen = gui.GifWindow()
+        self.idle = gui.IdleScreen()
+        self.selector = gui.ExerciseSelector()
+        self.loading_screen = gui.LoadingScreen()
 
-    def run(self):
-        self.graphical_ui.run_start() # starts the visual user interface
-        self.voice_interface.run() # voice interface in dormant state until signalled by graphical ui
-        self.idle()
+        self.addWidget(self.menu)           # index 0
+        self.addWidget(self.timer_screen)   # index 1
+        self.addWidget(self.video_list)     # index 2
+        self.addWidget(self.player)         # index 3
+        self.addWidget(self.gif_screen)     # index 4
+        self.addWidget(self.idle)           # index 5
+        self.addWidget(self.selector)       # index 6
+        self.addWidget(self.loading_screen) # index 7
 
-    def idle(self):
-        # signal from audio interface or other: 'I have a command for the controller'
-        while True:
-            sd.SharedData.event_command_for_controller_ready.wait()
-            sd.SharedData.event_command_for_controller_ready.clear()
-            command = self.voice_interface.command_storage.value # the command is stored in the voice interface class
-            if command == sd.SharedData.EXIT_COMMAND:
-                self.graphical_renderer.run() # when renderer is finished it sends a signal to gui
-                sd.SharedData.renderer_is_processing.set() # notify gui that renderer has started processing the video
-                return None
-            if command == sd.SharedData.LATERAL_RAISES_COMMAND:
-                self.start_exercise(sd.SharedData.LATERAL_RAISES_COMMAND)
-            elif command == sd.SharedData.BARBELL_ROW_COMMAND:
-                self.start_exercise(sd.SharedData.BARBELL_ROW_COMMAND)
-            elif command == sd.SharedData.DUMBBELL_CURL_COMMAND:
-                self.start_exercise(sd.SharedData.DUMBBELL_CURL_COMMAND)
-            # command executed, you may proceed
-            sd.SharedData.event_command_handled_by_controller.set()
+        # start
+        self.setCurrentIndex(0)
 
-    def start_exercise(self, exercise):
-        self.counter.run() # start dictating tempo
-        self.video_processor.run(exercise) # start processing camera feed, create DataFrame objects
-        # video processor runs video validator after each repetition
-        # go back to idle
+        self.menu.launch_trainer.connect(self.goto_idle)
+        self.menu.exit_app.connect(lambda: sys.exit(0))
+        self.menu.open_docs.connect(lambda: print("docs TODO"))
+        self.menu.open_saved.connect(self.goto_list)
+        self.idle.choose_exercise.connect(self.goto_selector)
+        self.idle.finish.connect(self.goto_menu)
+        self.selector.lateral.connect(self.start_lateral)
+        self.selector.curl.connect(self.start_curl)
+        self.selector.row.connect(self.start_row)
+        self.gif_screen.finish.connect(self.goto_idle)
+        self.video_list.list_widget.itemDoubleClicked.connect(self.open_video)
+        self.video_list.back.connect(self.goto_menu)
+        self.player.back.connect(self.goto_list)
+        self.timer_screen.finished.connect(self.start_last_exercise)
+        # TODO: connect voice interface and timer
+        self.last_exercise = None
 
+    def goto_menu(self):
+        self.setCurrentIndex(0)
+    def goto_idle(self):
+        self.setCurrentIndex(5)
+    def goto_selector(self):
+        self.setCurrentIndex(6)
+    def goto_gif(self):
+        self.setCurrentIndex(4)
+    def goto_timer(self):
+        self.setCurrentIndex(1)
+        self.timer_screen.start()
+    def goto_list(self):
+        self.setCurrentIndex(2)
+    def open_video(self, item):
+        filename = item.data(Qt.UserRole)
+        self.player.play_file(filename)
+        self.setCurrentIndex(3)
+    def start_lateral(self):
+        self.gif_screen.change_gif(1)
+        self.last_exercise = 'lateral'
+        #self.video_processor.start(1)
+        self.goto_gif()
+    def start_curl(self):
+        self.gif_screen.change_gif(2)
+        self.last_exercise = 'curl'
+        #self.video_processor.start(2)
+        self.goto_gif()
+    def start_row(self):
+        self.gif_screen.change_gif(3)
+        self.last_exercise = 'row'
+        #self.video_processor.start(3)
+        self.goto_gif()
+    def start_last_exercise(self):
+        if self.last_exercise == 'lateral':
+            self.start_lateral()
+        elif self.last_exercise == 'curl':
+            self.start_curl()
+        elif self.last_exercise == 'row':
+            self.start_row()
+            
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = App()
+    window.resize(800, 600)
+    window.show()
+    sys.exit(app.exec())
