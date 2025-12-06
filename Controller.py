@@ -32,6 +32,10 @@ class App(QStackedWidget):
         self.addWidget(self.selector)       # index 6
         self.addWidget(self.loading_screen) # index 7
 
+        # shared data
+        recordings_filenames = None  # filenames recordings of each exercise before video processing
+        video_data = None  # list of frame_data objects, the objects are created by video_processor and supplied with data by exercise_validator
+
         # start
         self.setCurrentIndex(0)
 
@@ -91,7 +95,7 @@ class App(QStackedWidget):
             self.start_curl()
         elif self.last_exercise == 'row':
             self.start_row()
-            
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = App()
