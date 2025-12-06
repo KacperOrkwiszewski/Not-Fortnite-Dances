@@ -1,7 +1,6 @@
-import sys
-from PySide6.QtWidgets import QApplication, QWidget, QLabel,QStackedWidget, QHBoxLayout
-from PySide6.QtGui import QPainter, QPen, QColor, QPixmap, QFont, QPalette, QIcon
-from PySide6.QtCore import QTimer, QRectF, Signal, QSize, QUrl
+from PySide6.QtWidgets import QLabel
+from PySide6.QtGui import QPainter, QPen, QColor, QPixmap, QFont
+from PySide6.QtCore import QTimer, QRectF, QUrl
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
 import os
@@ -91,6 +90,10 @@ class CircleTimer(QWidget):
         self.time_left = duration_seconds
         self.timer = QTimer()
         self.timer.timeout.connect(self.tick)
+        layout = QVBoxLayout(self)
+        layout.addStretch(1)
+        layout.setContentsMargins(10, 10, 10, 30)
+        insert_button(layout,"POMIŃ", self.finished)
 
     def start(self):
         self.time_left = self.duration
@@ -104,6 +107,9 @@ class CircleTimer(QWidget):
             self.timer.stop()
             self.finished.emit()
 
+    def stop(self):
+        self.time_left = 5
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -111,7 +117,7 @@ class CircleTimer(QWidget):
         h = self.height()
         size = 300
         x = (w - size) / 2
-        y = (h - size) / 2
+        y = (h - size) / 2 - 100
         # circle indicator
         rect = QRectF(x, y + 60, size, size)
         ratio = self.time_left / self.duration
@@ -285,77 +291,3 @@ class ExerciseSelector(QWidget):
                 insert_button(layout, text, self.row)
             i += 1
         self.setLayout(layout)
-
-class App(QStackedWidget):
-    def __init__(self):
-        super().__init__()
-
-        # GUI SCREENS
-        self.menu = MainMenu()
-        self.timer_screen = CircleTimer(duration_seconds=100) # rest duration
-        self.video_list = VideoList()
-        self.player = VideoPlayer()
-        self.gif_screen = GifWindow()
-        self.idle = IdleScreen()
-        self.selector = ExerciseSelector()
-        self.loading_screen = LoadingScreen()
-
-        self.addWidget(self.menu)           # index 0
-        self.addWidget(self.timer_screen)   # index 1
-        self.addWidget(self.video_list)     # index 2
-        self.addWidget(self.player)         # index 3
-        self.addWidget(self.gif_screen)     # index 4
-        self.addWidget(self.idle)           # index 5
-        self.addWidget(self.selector)       # index 6
-        self.addWidget(self.loading_screen) # index 7
-
-        # start
-        self.setCurrentIndex(0)
-
-        self.menu.launch_trainer.connect(self.goto_idle)
-        self.menu.exit_app.connect(lambda: sys.exit(0))
-        self.menu.open_docs.connect(lambda: print("docs TODO"))
-        self.menu.open_saved.connect(self.goto_list)
-        self.idle.choose_exercise.connect(self.goto_selector)
-        self.idle.finish.connect(self.goto_menu)
-        self.selector.lateral.connect(self.start_lateral)
-        self.selector.curl.connect(self.start_curl)
-        self.selector.row.connect(self.start_row)
-        self.gif_screen.finish.connect(self.goto_idle)
-        self.video_list.list_widget.itemDoubleClicked.connect(self.open_video)
-        self.video_list.back.connect(self.goto_menu)
-        self.player.back.connect(self.goto_list)
-
-    def goto_menu(self):
-        self.setCurrentIndex(0)
-    def goto_idle(self):
-        self.setCurrentIndex(5)
-    def goto_selector(self):
-        self.setCurrentIndex(6)
-    def goto_gif(self):
-        self.setCurrentIndex(4)
-    def goto_timer(self):
-        self.setCurrentIndex(1)
-        self.timer_screen.start()
-    def goto_list(self):
-        self.setCurrentIndex(2)
-    def open_video(self, item):
-        filename = item.data(Qt.UserRole)
-        self.player.play_file(filename)
-        self.setCurrentIndex(3)
-    def start_lateral(self):
-        self.gif_screen.change_gif(1)
-        self.goto_gif()
-    def start_curl(self):
-        self.gif_screen.change_gif(2)
-        self.goto_gif()
-    def start_row(self):
-        self.gif_screen.change_gif(3)
-        self.goto_gif()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = App()
-    window.resize(800, 600)
-    window.show()
-    sys.exit(app.exec())
