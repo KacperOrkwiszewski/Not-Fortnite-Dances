@@ -1,129 +1,96 @@
 import sys
-from tkinter.constants import CENTER
-
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QLabel,
-    QStackedWidget, QListWidget, QListWidgetItem, QFileDialog, QHBoxLayout, QSizePolicy
-)
-from PySide6.QtGui import QPainter, QPen, QColor, QPixmap, QFont, QMovie, QPalette
-from PySide6.QtCore import Qt, QTimer, QRectF, QObject, Signal, QSize, QUrl
-
-from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtWidgets import QApplication, QWidget, QLabel,QStackedWidget, QHBoxLayout
+from PySide6.QtGui import QPainter, QPen, QColor, QPixmap, QFont, QPalette, QIcon
+from PySide6.QtCore import QTimer, QRectF, Signal, QSize, QUrl
+from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QVideoWidget
+import os
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton
 
+def set_background(widget, color="#076e27"):
+    widget.setAutoFillBackground(True)
+    palette = widget.palette()
+    palette.setColor(widget.backgroundRole(), QColor(color))
+    widget.setPalette(palette)
+
+def insert_logo(layout,size):
+    image_label = QLabel()
+    pixmap = QPixmap("cyber-trener-logo.png")
+    pixmap = pixmap.scaledToWidth(size, Qt.SmoothTransformation)
+    image_label.setPixmap(pixmap)
+    image_label.setAlignment(Qt.AlignCenter)
+    layout.addWidget(image_label)
+
+def insert_button(layout,text,signal):
+    btn = QPushButton(text)
+    btn.setMinimumHeight(80)
+    btn.setMaximumHeight(80)
+    btn.setMinimumWidth(600)
+    btn.setMaximumWidth(600)
+    btn.setStyleSheet("""
+                            QPushButton {
+                                background-color: #faf6f1;
+                                color: #076e27;
+                                border-radius: 15px;
+                                padding: 10px 20px;
+                                font-family: "Arial";
+                                font-weight: bold;
+                                font-size: 30px;
+                            }
+                            QPushButton:hover {
+                                background-color: #fcfcfc;
+                            }
+                            QPushButton:pressed {
+                                background-color: #e8e6e6;
+                            }
+                        """)
+    btn.clicked.connect(signal)
+    layout.addWidget(btn, alignment=Qt.AlignCenter)
 
 class MainMenu(QWidget):
-    """Main menu widget."""
-    start_exercise = Signal()
-    open_options = Signal()
-    open_preferences = Signal()
+    launch_trainer = Signal()
+    open_saved = Signal()
     open_docs = Signal()
     exit_app = Signal()
     def __init__(self):
         super().__init__()
-
-        # background
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(self.backgroundRole(), QColor("#076e27"))
-        self.setPalette(palette)
-
+        set_background(widget=self)
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 30)  # left, top, right, bottom
-
-        # window top logo
-        image_label = QLabel()
-        pixmap = QPixmap("cyber-trener-logo.png")
-        pixmap = pixmap.scaledToWidth(200, Qt.SmoothTransformation)
-        image_label.setPixmap(pixmap)
-        image_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(image_label)
-
+        layout.setContentsMargins(10, 10, 10, 30)
+        insert_logo(layout=layout, size = 200)
         # add buttons
-        labels = ["ROZPOCZNIJ", "OPCJE", "PREFERENCJE", "DOKUMENTACJA", "WYJDŹ"]
-        self.buttons = []
+        labels = ["ROZPOCZNIJ", "RAPORTY", "DOKUMENTACJA", "WYJDŹ"]
         i = 0
         for text in labels:
-            row = QHBoxLayout()
-            btn = QPushButton(text)
-            btn.setMinimumHeight(60)
-            btn.setMaximumHeight(100)
-            btn.setMinimumWidth(300)
-            btn.setMaximumWidth(600)
-            btn.setStyleSheet("""
-                        QPushButton {
-                            background-color: #faf6f1;
-                            color: #076e27;
-                            border-radius: 15px;
-                            padding: 10px 20px;
-                            font-family: "Arial";
-                            font-weight: bold;
-                            font-size: 30px;
-                        }
-                        QPushButton:hover {
-                            background-color: #fcfcfc;
-                        }
-                        QPushButton:pressed {
-                            background-color: #e8e6e6;
-                        }
-                    """)
-
-            # connect button to signal
             if i == 0:
-                btn.clicked.connect(self.start_exercise)
+                insert_button(layout=layout, text=text, signal=self.launch_trainer)
             elif i == 1:
-                btn.clicked.connect(self.open_options)
-            elif i == 1:
-                btn.clicked.connect(self.open_preferences)
-            elif i == 1:
-                btn.clicked.connect(self.open_docs)
-            elif i == 1:
-                btn.clicked.connect(self.exit_app)
+                insert_button(layout=layout, text=text, signal=self.open_saved)
+            elif i == 2:
+                insert_button(layout=layout, text=text, signal=self.open_docs)
+            elif i == 3:
+                insert_button(layout=layout, text=text, signal=self.exit_app)
             i += 1
 
-            row.addWidget(btn)
-            layout.addLayout(row)
-            self.buttons.append(btn)
         # footer
         footer = QLabel("© 2025 Projekt PSIO: Cyber-Trener. Politechnika Łódzka")
         footer.setStyleSheet("color: #faf6f1; font-size: 12px;")
         footer.setAlignment(Qt.AlignCenter)
         layout.addWidget(footer)
-
         self.setLayout(layout)
 
 
 class CircleTimer(QWidget):
-    """Timer with animated circle ."""
     finished = Signal()
-
     def __init__(self, duration_seconds=10):
         super().__init__()
+        set_background(widget=self)
         self.duration = duration_seconds
         self.time_left = duration_seconds
-
-        # background
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(self.backgroundRole(), QColor("#076e27"))
-        self.setPalette(palette)
-
         self.timer = QTimer()
         self.timer.timeout.connect(self.tick)
-
-        # header
-        self.header_label = QLabel("ODPOCZNIJ")
-        self.header_label.setAlignment(Qt.AlignCenter)
-        header_font = QFont("Arial", 40, QFont.Bold)
-        self.header_label.setFont(header_font)
-        self.header_label.setStyleSheet("color: #faf6f1;")
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(100, 60, 100, 10)
-        layout.addWidget(self.header_label)
-        layout.addStretch(1)
-        self.setLayout(layout)
 
     def start(self):
         self.time_left = self.duration
@@ -133,210 +100,258 @@ class CircleTimer(QWidget):
     def tick(self):
         self.time_left -= 1
         self.update()
-
         if self.time_left <= 0:
             self.timer.stop()
             self.finished.emit()
 
     def paintEvent(self, event):
-        """Circular time indicator."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-
         w = self.width()
         h = self.height()
         size = 300
         x = (w - size) / 2
         y = (h - size) / 2
+        # circle indicator
         rect = QRectF(x, y + 60, size, size)
-
-        # progress
         ratio = self.time_left / self.duration
         angle = int(360 * ratio * 16)
-
         pen_fg = QPen(QColor("#faf6f1"), 20)
         painter.setPen(pen_fg)
         painter.drawArc(rect, 90 * 16, -angle)
-
         # time
         painter.setPen(QColor("#faf6f1"))
         font = QFont("Arial", 40, QFont.Bold)
         painter.setFont(font)
-
         text = f"{self.time_left // 60:02d}:{self.time_left % 60:02d}"
         text_rect = painter.boundingRect(rect, Qt.AlignCenter, text)
         painter.drawText(text_rect, Qt.AlignCenter, text)
 
-
 class VideoList(QWidget):
-    """Ekran z miniaturkami nagrań + odtwarzanie."""
     back = Signal()
-
+    video_selected = Signal(str)
     def __init__(self):
         super().__init__()
-
         layout = QVBoxLayout()
-
+        layout.setContentsMargins(50, 20, 50, 100)
+        layout.setSpacing(50)
+        set_background(widget=self)
+        # video list
         self.list_widget = QListWidget()
-        btn_load = QPushButton("Wczytaj wideo")
-        btn_back = QPushButton("Powrót")
-
-        btn_load.clicked.connect(self.load_video)
-        btn_back.clicked.connect(self.back)
-
+        self.list_widget.setStyleSheet("""
+            QListWidget {
+            font-family: "Arial";
+            font-weight: bold;
+            font-size: 20px;
+            color: #076e27;
+            background-color: #faf6f1;
+            }
+        """)
+        insert_logo(layout,200)
         layout.addWidget(self.list_widget)
-        layout.addWidget(btn_load)
-        layout.addWidget(btn_back)
-
+        insert_button(layout=layout, text="POWRÓT", signal=self.back)
+        self.load_videos_from_folder("video_reports")
         self.setLayout(layout)
+        # double-click -> sygnał
+        self.list_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
 
-    def load_video(self):
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "Wybierz wideo", "", "Video Files (*.mp4 *.avi)"
-        )
-        if not filename:
-            return
+    def load_videos_from_folder(self, folder_path):
+        self.list_widget.clear()
+        video_extensions = (".mp4", ".avi", ".mov", ".mkv")
+        for file_name in os.listdir(folder_path):
+            if file_name.lower().endswith(video_extensions):
+                item = QListWidgetItem(file_name)
+                item.setData(Qt.UserRole, os.path.join(folder_path, file_name))
+                self.list_widget.addItem(item)
 
-        item = QListWidgetItem(filename)
-        item.setData(Qt.UserRole, filename)
-        self.list_widget.addItem(item)
-
+    def on_item_double_clicked(self, item):
+        filename = item.data(Qt.UserRole)
+        self.video_selected.emit(filename)
 
 class VideoPlayer(QWidget):
-    """Odtwarzacz wideo."""
     back = Signal()
-
     def __init__(self):
         super().__init__()
-
         layout = QVBoxLayout()
+        set_background(self)
 
         self.video_widget = QVideoWidget()
+        self.video_widget.setMaximumSize(2000, 1000)
+        self.video_widget.setMinimumSize(800,600)
         self.player = QMediaPlayer()
-        audio = QAudioOutput()
-        self.player.setAudioOutput(audio)
         self.player.setVideoOutput(self.video_widget)
-
-        self.btn_back = QPushButton("Powrót")
-        self.btn_back.clicked.connect(self.back)
-
-        layout.addWidget(self.video_widget)
-        layout.addWidget(self.btn_back)
+        insert_logo(layout,100)
+        layout.addWidget(self.video_widget,alignment=Qt.AlignCenter)
+        insert_button(layout,"POWRÓT",self.back)
         self.setLayout(layout)
 
     def play_file(self, filename):
-        self.player.setSource(filename)
+        url = QUrl.fromLocalFile(filename)
+        self.player.setSource(url)
         self.player.play()
 
 class GifWindow(QWidget):
-    """Window to show during exercise with MP4 video of the exercise"""
     finish = Signal()
     def __init__(self):
         super().__init__()
+        set_background(widget=self)
         self.video_path = "curl_gif.gif"
-        # Background color
-        self.setAutoFillBackground(True)
-        palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Window, QColor("#076e27"))
-        self.setPalette(palette)
-
         layout = QVBoxLayout()
         layout.setSpacing(10)
         layout.setContentsMargins(0, 20, 20, 20)
-
         # Video widget
         self.video_widget = QVideoWidget()
         self.video_widget.setFixedSize(600,600)
         self.video_widget.setAutoFillBackground(True)
         layout.addWidget(self.video_widget,alignment=Qt.AlignCenter)
-
         # Media player
         self.media_player = QMediaPlayer()
-        self.audio_output = QAudioOutput()
-        self.media_player.setAudioOutput(self.audio_output)
         self.media_player.setVideoOutput(self.video_widget)
-
         # Load video
         self.media_player.setSource(QUrl.fromLocalFile(self.video_path))
         self.media_player.setLoops(-1)  # Loop indefinitely
         self.media_player.play()
-
-        # button
-        button_layout = QHBoxLayout()
-        button_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.button = QPushButton("ZAKOŃCZ ĆWICZENIE")
-        self.button.setStyleSheet("""
-                                        QPushButton {
-                                            background-color: #faf6f1;
-                                            color: #076e27;
-                                            border-radius: 15px;
-                                            padding: 10px 20px;
-                                            font-family: "Arial";
-                                            font-weight: bold;
-                                            font-size: 30px;
-                                        }
-                                        QPushButton:hover {
-                                            background-color: #fcfcfc;
-                                        }
-                                        QPushButton:pressed {
-                                            background-color: #e8e6e6;
-                                        }
-                                    """)
-        self.button.clicked.connect(self.finish)
-        button_layout.addWidget(self.button)
-        layout.addLayout(button_layout)
+        insert_button(layout,"ZAKOŃCZ ĆWICZENIE",self.finish)
         self.setLayout(layout)
 
     def change_gif(self,code):
         if code == 1:
             self.video_path = "lateral_gif.gif"
         elif code == 2:
-            self.video_path = "barbell_gif.gif"
+            self.video_path = "curl_gif.gif"
         elif code == 3:
-            self.video_path = "dumbbell_gif.gif"
+            self.video_path = "row_gif.gif"
+        self.media_player.setSource(QUrl.fromLocalFile(self.video_path))
+        self.media_player.setLoops(-1)
+        self.media_player.play()
 
-class App(QStackedWidget):
-    """Główne okno aplikacji."""
+class IdleScreen(QWidget):
+    finish = Signal()
+    choose_exercise = Signal()
     def __init__(self):
         super().__init__()
-        # ekrany
+        set_background(widget=self)
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 30)  # left, top, right, bottom
+        insert_logo(layout,400)
+        # add buttons
+        labels = ["WYBIERZ ĆWICZENIE", "ZAKOŃCZ TRENING"]
+        i = 0
+        for text in labels:
+            if i == 0:
+                insert_button(layout, text, self.choose_exercise)
+            elif i == 1:
+                insert_button(layout, text, self.finish)
+            i += 1
+        layout.addStretch(1)
+        self.setLayout(layout)
+
+class LoadingScreen(QWidget):
+    def __init__(self):
+        super().__init__()
+        set_background(widget=self)
+        layout = QVBoxLayout(self)
+        # header
+        self.header_label = QLabel("ŁADOWANIE...")
+        self.header_label.setAlignment(Qt.AlignCenter)
+        header_font = QFont("Arial", 40, QFont.Bold)
+        self.header_label.setFont(header_font)
+        self.header_label.setStyleSheet("color: #faf6f1;")
+        self.layout().addWidget(self.header_label)
+        insert_logo(layout,600)
+        self.setLayout(layout)
+
+class ExerciseSelector(QWidget):
+    lateral = Signal()
+    row = Signal()
+    curl = Signal()
+    def __init__(self):
+        super().__init__()
+        set_background(widget=self)
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 30)  # left, top, right, bottom
+        insert_logo(layout,400)
+        # add buttons
+        labels = ["WZNOSY W BOK", "UGINANIE RAMION PODCHWYTEM","WIOSŁOWANIE SZTANGĄ"]
+        i = 0
+        for text in labels:
+            if i == 0:
+                insert_button(layout, text, self.lateral)
+            elif i == 1:
+                insert_button(layout, text, self.curl)
+            elif i == 2:
+                insert_button(layout, text, self.row)
+            i += 1
+        self.setLayout(layout)
+
+class App(QStackedWidget):
+    def __init__(self):
+        super().__init__()
+
+        # GUI SCREENS
         self.menu = MainMenu()
-        self.gif_screen = GifWindow()
-        self.timer_screen = CircleTimer(duration_seconds=100)
+        self.timer_screen = CircleTimer(duration_seconds=100) # rest duration
         self.video_list = VideoList()
         self.player = VideoPlayer()
+        self.gif_screen = GifWindow()
+        self.idle = IdleScreen()
+        self.selector = ExerciseSelector()
+        self.loading_screen = LoadingScreen()
 
-        # dodajemy ekrany
-        self.addWidget(self.menu)         # index 0
-        self.addWidget(self.timer_screen) # index 1
-        self.addWidget(self.video_list)   # index 2
-        self.addWidget(self.player)       # index 3
-        self.addWidget(self.gif_screen) # index 4
+        self.addWidget(self.menu)           # index 0
+        self.addWidget(self.timer_screen)   # index 1
+        self.addWidget(self.video_list)     # index 2
+        self.addWidget(self.player)         # index 3
+        self.addWidget(self.gif_screen)     # index 4
+        self.addWidget(self.idle)           # index 5
+        self.addWidget(self.selector)       # index 6
+        self.addWidget(self.loading_screen) # index 7
 
-        # połączenia sygnałów
-        self.menu.start_exercise.connect(self.goto_gif)
-        self.timer_screen.finished.connect(self.goto_menu)
+        # start
+        self.setCurrentIndex(0)
 
-        self.menu.open_docs.connect(lambda: print("TODO: dokumentacja"))
+        self.menu.launch_trainer.connect(self.goto_idle)
         self.menu.exit_app.connect(lambda: sys.exit(0))
-
+        self.menu.open_docs.connect(lambda: print("docs TODO"))
+        self.menu.open_saved.connect(self.goto_list)
+        self.idle.choose_exercise.connect(self.goto_selector)
+        self.idle.finish.connect(self.goto_menu)
+        self.selector.lateral.connect(self.start_lateral)
+        self.selector.curl.connect(self.start_curl)
+        self.selector.row.connect(self.start_row)
+        self.gif_screen.finish.connect(self.goto_idle)
         self.video_list.list_widget.itemDoubleClicked.connect(self.open_video)
-
-    def goto_timer(self):
-        self.setCurrentIndex(1)
-        self.timer_screen.start()
+        self.video_list.back.connect(self.goto_menu)
+        self.player.back.connect(self.goto_list)
 
     def goto_menu(self):
         self.setCurrentIndex(0)
-
+    def goto_idle(self):
+        self.setCurrentIndex(5)
+    def goto_selector(self):
+        self.setCurrentIndex(6)
+    def goto_gif(self):
+        self.setCurrentIndex(4)
+    def goto_timer(self):
+        self.setCurrentIndex(1)
+        self.timer_screen.start()
+    def goto_list(self):
+        self.setCurrentIndex(2)
     def open_video(self, item):
         filename = item.data(Qt.UserRole)
         self.player.play_file(filename)
         self.setCurrentIndex(3)
-
-    def goto_gif(self):
-        self.setCurrentIndex(4)
-
+    def start_lateral(self):
+        self.gif_screen.change_gif(1)
+        self.goto_gif()
+    def start_curl(self):
+        self.gif_screen.change_gif(2)
+        self.goto_gif()
+    def start_row(self):
+        self.gif_screen.change_gif(3)
+        self.goto_gif()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
