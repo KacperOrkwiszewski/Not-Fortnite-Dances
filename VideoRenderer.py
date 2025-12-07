@@ -1,12 +1,25 @@
 import cv2
+from PySide6.QtCore import QThread, Signal
+
 import frame_data as fd
 
-class VideoRenderer():
+class VideoRenderer(QThread):
+    finished = Signal()
     def __init__(self):
+        super().__init__()
         self.last_position_match = 0
         self.watch_OK = cv2.imread("watch_ok.png", cv2.IMREAD_UNCHANGED)
         self.watch_TOO_SLOW = cv2.imread("watch_slow.png", cv2.IMREAD_UNCHANGED)
         self.watch_TOO_FAST = cv2.imread("watch_fast.png", cv2.IMREAD_UNCHANGED)
+        self.filenames = None
+        self.datas = None
+
+    def run(self):
+        self.process_files(self.filenames,self.datas)
+
+    def set_input(self,filenames,datas):
+        self.filenames = filenames
+        self.datas = datas
 
     def overlay_icon(self, frame, icon, scale=0.25, margin=10):
         if icon is None:
@@ -35,6 +48,11 @@ class VideoRenderer():
 
         frame[y:y + new_h, x:x + new_w] = roi
         return frame
+
+    def process_files(self,filenames,video_datas):
+        for filename,video_data in zip(filenames,video_datas):
+            self.process_file(filename,video_data)
+        self.finished.emit()
 
     def process_file(self, filename,video_data):
         full_filename = 'camera_recordings/' + filename

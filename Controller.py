@@ -2,15 +2,17 @@ import sys
 from PySide6.QtWidgets import QApplication, QStackedWidget
 from PySide6.QtCore import Qt
 import GUIScreens as gui
+import VideoRenderer
 
 class App(QStackedWidget):
     def __init__(self):
         super().__init__()
         # components
+        # TODO: connect all components
         self.voice_interface = None  # receives and validates voice commands sending appropriate signals to appropriate component
         self.counter = None  # dictates exercise tempo with voice ques, counts times between sets
         self.video_processor = None  # processes camera feed from 2 cameras, saves the video and produces DataFrame objects
-        self.graphical_renderer = None  # reads video from file, annotates each frame with feedback based on completed DataFrame objects, saves modified frames as video
+        self.graphical_renderer = VideoRenderer.VideoRenderer()  # reads video from file, annotates each frame with feedback based on completed DataFrame objects, saves modified frames as video
         self.exercise_validator = None  # completes FrameData objects
 
         # GUI SCREENS
@@ -33,8 +35,8 @@ class App(QStackedWidget):
         self.addWidget(self.loading_screen) # index 7
 
         # shared data
-        recordings_filenames = None  # filenames recordings of each exercise before video processing
-        video_data = None  # list of frame_data objects, the objects are created by video_processor and supplied with data by exercise_validator
+        self.recordings_filenames = None  # filenames recordings of each exercise before video processing
+        self.video_data = None  # list of frame_data objects, the objects are created by video_processor and supplied with data by exercise_validator
 
         # start
         self.setCurrentIndex(0)
@@ -53,6 +55,7 @@ class App(QStackedWidget):
         self.video_list.back.connect(self.goto_menu)
         self.player.back.connect(self.goto_list)
         self.timer_screen.finished.connect(self.start_last_exercise)
+        self.graphical_renderer.finished.connect(self.goto_list)
         # TODO: connect voice interface and timer
         self.last_exercise = None
 
@@ -67,6 +70,10 @@ class App(QStackedWidget):
     def goto_timer(self):
         self.setCurrentIndex(1)
         self.timer_screen.start()
+    def goto_loading(self):
+        self.graphical_renderer.set_input(self.recordings_filenames,self.video_data)
+        self.graphical_renderer.start()
+        self.setCurrentIndex(7)
     def goto_list(self):
         self.setCurrentIndex(2)
     def open_video(self, item):
