@@ -1,10 +1,12 @@
 import speech_recognition as sr
 from speech_recognition.exceptions import UnknownValueError
-from PySide6.QtCore import QObject, Signal, QRunnable, Slot, QThread
+from PySide6.QtCore import QObject, Signal, Slot, QThread
+from PySide6.QtWidgets import QApplication
+import sys
 from threading import Event
 import pyttsx3
 from state import *
-from fuzzywuzzy import process
+import voice_utils as utils
 
 class Voice(QObject):
   text_signal = Signal(str)
@@ -13,21 +15,7 @@ class Voice(QObject):
     super().__init__()
     self.stop_recognizing = Event()
     self.state = State.START
-    self.similarity_treshold = 80
     self.active = True
-
-  def str_similar(self, st, sl):
-    best_match = process.extractOne(st, sl)
-    if best_match is None:
-      return None
-
-    string, probability = best_match
-    print(f"Znaleziono napis: {string} z prawdopodobienstwem {probability} na podstawie słowa {st}")
-
-    if probability >= self.similarity_treshold:
-      return string
-
-    return None
 
   def getNextState(self):
     return State(int(self.state) + 1)
@@ -54,7 +42,7 @@ class Voice(QObject):
           self.active = False
           continue
 
-        if self.str_similar(text, [OK_TRAINER_CMD]) is not None:
+        if utils.string_similarity(text, [OK_TRAINER_CMD]) is not None:
           self.active = True
           self.text_signal.emit(OK_TRAINER_CMD)
           if self.state == State.START:
@@ -65,19 +53,15 @@ class Voice(QObject):
           continue
 
         possible_commands = state_transitions.get(self.state)
-        command = self.str_similar(text, possible_commands)
+        command = utils.string_similarity(text, possible_commands)
         if command is not None:
           self.text_signal.emit(command)
           self.state = self.getNextState()
         else:
           self.text_signal.emit(UNRECOGNIZED_CMD)
 
-
-
 # Simple test for listening
 if __name__ == "__main__":
-    from PySide6.QtWidgets import QApplication
-    import sys
 
     @Slot(str)
     def handle_recognized_text(text):
