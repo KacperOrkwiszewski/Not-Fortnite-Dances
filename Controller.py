@@ -1,15 +1,19 @@
 import sys
 from PySide6.QtWidgets import QApplication, QStackedWidget
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread
 import GUIScreens as gui
 import VideoRenderer
+import voice_interface
+from voice_interface import voice
+from voice_interface import state
+from PySide6.QtCore import Slot
 
 class App(QStackedWidget):
     def __init__(self):
         super().__init__()
         # components
         # TODO: connect all components
-        self.voice_interface = None  # receives and validates voice commands sending appropriate signals to appropriate component
+        self.voice_interface = voice.Voice()  # receives and validates voice commands sending appropriate signals to appropriate component
         self.counter = None  # dictates exercise tempo with voice ques, counts times between sets
         self.video_processor = None  # processes camera feed from 2 cameras, saves the video and produces DataFrame objects
         self.graphical_renderer = VideoRenderer.VideoRenderer()  # reads video from file, annotates each frame with feedback based on completed DataFrame objects, saves modified frames as video
@@ -57,6 +61,8 @@ class App(QStackedWidget):
         self.timer_screen.finished.connect(self.start_last_exercise)
         self.graphical_renderer.finished.connect(self.goto_list)
         # TODO: connect voice interface and timer
+        self.voice_interface.text_signal.connect(self.voice_command_handler)
+        self.voice_interface.start()
         self.last_exercise = None
 
     def goto_menu(self):
@@ -102,6 +108,26 @@ class App(QStackedWidget):
             self.start_curl()
         elif self.last_exercise == 'row':
             self.start_row()
+    @Slot(str)
+    def voice_command_handler(self,command):
+        self.voice_interface.say(command)
+        print(command)
+        if command == state.FINISH_TRAINING_CMD:
+            self.goto_menu()
+        if command == state.CHOOSE_EXCERCISE_CMD:
+            self.goto_selector()
+        if command == state.CURL_CMD:
+            self.start_curl()
+        if command == state.LATERAL_CMD:
+            self.start_lateral()
+        if command == state.ROW_CMD:
+            self.start_row()
+        if command == state.FINISH_EXCERCISE_CMD:
+            self.goto_selector()
+        if command == state.UNRECOGNIZED_CMD:
+            print("Unrecognized command")
+            #TODO say unrecognised command
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
