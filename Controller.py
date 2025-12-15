@@ -91,16 +91,19 @@ class App(QStackedWidget):
         self.last_exercise = 'lateral'
         #self.video_processor.start(1)
         self.goto_gif()
+        self.voice_interface.start_set(1, 2, 1, 5, 10, 3)
     def start_curl(self):
         self.gif_screen.change_gif(2)
         self.last_exercise = 'curl'
         #self.video_processor.start(2)
         self.goto_gif()
+        self.voice_interface.start_set(1, 2, 1, 5, 10, 3)
     def start_row(self):
         self.gif_screen.change_gif(3)
         self.last_exercise = 'row'
         #self.video_processor.start(3)
         self.goto_gif()
+        self.voice_interface.start_set(1, 2, 1, 5, 10, 3)
     def start_last_exercise(self):
         if self.last_exercise == 'lateral':
             self.start_lateral()
