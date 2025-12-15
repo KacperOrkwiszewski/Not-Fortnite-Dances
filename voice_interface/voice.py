@@ -17,7 +17,14 @@ class Voice(QThread):
     self.state = state.State.START
     self.active = True
 
-  def getNextState(self):
+  def getNextState(self, command=None):
+
+    if command == state.FINISH_EXCERCISE_CMD:
+      return state.State.CHOOSE_EXCERCISE
+
+    if command == state.FINISH_TRAINING_CMD:
+      return state.State.CHOOSE_COMMAND
+
     return state.State(int(self.state) + 1)
 
   def say(self, text):
@@ -35,7 +42,6 @@ class Voice(QThread):
           audio = recognizer.listen(voice_source, timeout=3)
           text = recognizer.recognize_google(audio, language="pl-PL")
         except UnknownValueError:
-          print("Couldn't catch that!")
           continue
         except sr.WaitTimeoutError:
           print("Timeout. Deactivating")
@@ -56,6 +62,6 @@ class Voice(QThread):
         command = utils.string_similarity(text, possible_commands)
         if command is not None:
           self.text_signal.emit(command)
-          self.state = self.getNextState()
+          self.state = self.getNextState(command)
         else:
           self.text_signal.emit(state.UNRECOGNIZED_CMD)

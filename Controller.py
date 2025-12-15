@@ -111,7 +111,7 @@ class App(QStackedWidget):
     @Slot(str)
     def voice_command_handler(self,command):
         self.voice_interface.say(command)
-        print(command)
+        #print(command)
         if command == state.FINISH_TRAINING_CMD:
             self.goto_menu()
         if command == state.CHOOSE_EXCERCISE_CMD:
@@ -125,7 +125,7 @@ class App(QStackedWidget):
         if command == state.FINISH_EXCERCISE_CMD:
             self.goto_selector()
         if command == state.UNRECOGNIZED_CMD:
-            print("Unrecognized command")
+          pass
             #TODO say unrecognised command
 
 

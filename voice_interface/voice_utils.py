@@ -6,9 +6,9 @@ def string_similarity(string, options, similarity_treshold=80):
       return None
 
     text, probability = best_match
-    print(f"Znaleziono napis: {text} z prawdopodobienstwem {probability} na podstawie słowa {string}")
+    #print(f"Znaleziono napis: {text} z prawdopodobienstwem {probability} na podstawie słowa {string}")
 
     if probability >= similarity_treshold:
-      return string
+      return text
 
     return None
